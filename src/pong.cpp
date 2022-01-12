@@ -3,14 +3,15 @@
 #include <thread>
 #include <stdlib.h>
 #include <string.h>
+#include "cround/cround.h"
 
 #define PONG_OFFSET_X 1
 #define PONG_OFFSET_Y 1
 #define PONG_REGULAR 0
 #define PONG_DEBUG 1
-#define PONG_RATIO 1.334
-#define PONG_COSYS_XMAX (float)((float)10 * 1.334)
-#define PONG_COSYS_YMAX ((float)10)
+#define PONG_RATIO (float)(4.0f / 3.0f)
+#define PONG_COSYS_XMAX (10.0f * (4.0f / 3.0f))
+#define PONG_COSYS_YMAX 10.0f
 
 typedef enum input
 {
@@ -69,9 +70,7 @@ error free_frame(frame);
 error render(gamestate);
 error run(gamestate*);
 input get_input();
-error run_frame(gamestate);
 void cleanup();
-
 
 point create_point(float x, float y)
 {
@@ -96,12 +95,12 @@ gamestate init_game(size_t height, int condition)
         init_pair(2, COLOR_RED, COLOR_BLACK);
     }
 
-    size_t width = height * PONG_RATIO;
+    size_t width = cround((float)height * PONG_RATIO);
 
     gamestate _return;
 
     mvaddch(0, 0, 'x');
-    for(int i = 0; i < width * 2 + 1; i++)
+    for(int i = 0; i < width * 2 + PONG_OFFSET_X; i++)
         addch('-');
     addch('x');
 
@@ -110,40 +109,41 @@ gamestate init_game(size_t height, int condition)
         for(int i = 1; i < width * 2; i++)
         {
             attron(COLOR_PAIR(2));
-            mvaddch(height / 2 + 1, 0, ' ');
-            for(int i = 0; i < width * 2 + 1; i++)
+            mvaddch(cround((float)height / 2.0f) + PONG_OFFSET_Y, 0, ' ');
+            for(int i = 0; i < width * 2 + PONG_OFFSET_X; i++)
                 addch('-');
             attroff(COLOR_PAIR(2));
         }
     }
 
-    mvaddch(height + 1, 0, 'x');
-    for(int i = 0; i < width * 2 + 1; i++)
+    mvaddch(height + PONG_OFFSET_Y, 0, 'x');
+    for(int i = 0; i < width * 2 + PONG_OFFSET_X; i++)
         addch('-');
     addch('x');
 
-    for(int i = 1; i < height + 1; i++)
+    for(int i = 1; i < height + PONG_OFFSET_Y; i++)
     {
         mvaddch(i, 0, '|');
 
         if(condition == PONG_DEBUG)
         {
             attron(COLOR_PAIR(1));
-            mvaddch(i, width + 1, '|');
+            mvaddch(i, width + PONG_OFFSET_X, '|');
             attroff(COLOR_PAIR(1));
         }
 
-        mvaddch(i, width * 2 + 2, '|');
+        mvaddch(i, width * 2 + PONG_OFFSET_Y + 1, '|');
     }
 
-    mvprintw(0, width - 6, "= Pong Curses =");
+    const char* name = " Pongy ";
+    mvprintw(0, (width - (cround((float)strlen(name) / 2.0f) - PONG_OFFSET_X - 1)), name);
 
-    mvprintw(0, width / 2 - 1, " %d ", 0);
-    mvprintw(0, width + width / 2 + 1, " %d ", 0);
+    mvprintw(0, cround((float)width / 2.0f) - 1, " %d ", 0);
+    mvprintw(0, width + cround((float)width / 2.0f) + 1, " %d ", 0);
 
     if(condition == PONG_DEBUG)
     {
-        mvprintw(0, 0, "h:%d w:%d t: %d", height, width, height * width);
+        mvprintw(0, 0, "h:%d w:%d t: %d e: %f r: %f, my: %d", height, width, height * width, (float)((float)height * (float)PONG_RATIO), PONG_RATIO, cround((float)height / 2.0f) + PONG_OFFSET_Y);
     }
 
     frame f = create_frame(height, width);
@@ -152,7 +152,7 @@ gamestate init_game(size_t height, int condition)
     _return.p2pos = 7.5;
     _return.framecount = 0;
     _return.framebuffer = f;
-    _return.ballpos = create_point((PONG_COSYS_XMAX) / 2, PONG_COSYS_YMAX / 2);
+    _return.ballpos = create_point((PONG_COSYS_XMAX) / 2.0f, PONG_COSYS_YMAX / 2.0f);
 
     _return.condition = condition;
 
@@ -201,6 +201,7 @@ input get_input()
         case 'w': return UP_P1;
         case 's': return DOWN_P1;
     }
+
     return INVALID;
 }
 
@@ -210,8 +211,8 @@ error render(gamestate gs)
 
     // Ball computation
     {
-        bally = (gs.ballpos.y / PONG_COSYS_YMAX) * gs.framebuffer.height; 
-        ballx = (gs.ballpos.x / PONG_COSYS_XMAX) * gs.framebuffer.width;
+        bally = cround((float)gs.ballpos.y / PONG_COSYS_YMAX) * gs.framebuffer.height; 
+        ballx = cround((float)gs.ballpos.x / PONG_COSYS_XMAX) * gs.framebuffer.width;
 
         mvaddch(bally + PONG_OFFSET_Y, ballx * 2 + PONG_OFFSET_X, '@');
     }
@@ -221,7 +222,7 @@ error render(gamestate gs)
         int sliderpos = (gs.p1pos / PONG_COSYS_YMAX) * gs.framebuffer.height;
         int slidersize = gs.framebuffer.height / 3;
 
-        int offset = slidersize / 2 - 1;
+        int offset = cround((float)slidersize / 2.0f - 1.0f);
 
         for(int i = 0; i < gs.framebuffer.height; i++)
         {
@@ -236,10 +237,10 @@ error render(gamestate gs)
 
     // p2 slider computation
     {
-        int sliderpos = (gs.p2pos / PONG_COSYS_YMAX) * gs.framebuffer.height;
-        int slidersize = gs.framebuffer.height / 3;
+        int sliderpos = cround((float)gs.p2pos / PONG_COSYS_YMAX) * gs.framebuffer.height;
+        int slidersize = cround((float)gs.framebuffer.height / 3.0f);
 
-        int offset = slidersize / 2 - 1;
+        int offset = cround((float)slidersize / 2.0f - 1.0f);
 
         for(int i = 0; i < slidersize; i++)
         {
@@ -269,7 +270,7 @@ error render(gamestate gs)
 
         mvprintw
         (
-            0, gs.framebuffer.width * 2 + 4,
+            gs.framebuffer.height + PONG_OFFSET_Y * 2 + 2, 0,
             "framecount: %d",
             gs.framecount
         );
@@ -297,6 +298,24 @@ error run(gamestate* gsptr)
         case UP_P1:
         {
             gsptr->p1pos -= 0.25;
+        }
+        break;
+
+        case DOWN_P1:
+        {
+            gsptr->p1pos += 0.25;
+        }
+        break;
+
+        case UP_P2:
+        {
+            gsptr->p2pos -= 0.25;
+        }
+        break;
+
+        case DOWN_P2:
+        {
+            gsptr->p2pos += 0.25;
         }
         break;
     }
