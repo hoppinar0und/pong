@@ -143,7 +143,7 @@ gamestate init_game(size_t height, int condition)
 
     if(condition == PONG_DEBUG)
     {
-        mvprintw(0, 0, "h:%d w:%d ", height, width);
+        mvprintw(0, 0, "h:%d w:%d t: %d", height, width, height * width);
     }
 
     frame f = create_frame(height, width);
@@ -219,7 +219,7 @@ error render(gamestate gs)
     // p1 slider computation
     {
         int sliderpos = (gs.p1pos / PONG_COSYS_YMAX) * gs.framebuffer.height;
-        int slidersize = gs.framebuffer.height / 8;
+        int slidersize = gs.framebuffer.height / 3;
 
         int offset = slidersize / 2 - 1;
 
@@ -237,7 +237,7 @@ error render(gamestate gs)
     // p2 slider computation
     {
         int sliderpos = (gs.p2pos / PONG_COSYS_YMAX) * gs.framebuffer.height;
-        int slidersize = gs.framebuffer.height / 8;
+        int slidersize = gs.framebuffer.height / 3;
 
         int offset = slidersize / 2 - 1;
 
@@ -323,7 +323,7 @@ int main(int argc, char** argv)
         }
     }
 
-    gamestate gs = init_game(24, condition);
+    gamestate gs = init_game(8, condition);
 
     while(gs.alive)
     {
