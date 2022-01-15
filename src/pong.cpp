@@ -214,7 +214,7 @@ error render(gamestate gs)
         bally = cround((float)gs.ballpos.y / PONG_COSYS_YMAX) * gs.framebuffer.height; 
         ballx = cround((float)gs.ballpos.x / PONG_COSYS_XMAX) * gs.framebuffer.width;
 
-        gs.framebuffer.pxlbuf[bally + PONG_OFFSET_Y][ballx * 2 + PONG_OFFSET_X] = '@';
+        mvaddch(bally + PONG_OFFSET_Y, ballx * 2 + PONG_OFFSET_X, '@');
     }
 
     // p1 slider computation
@@ -231,7 +231,7 @@ error render(gamestate gs)
 
         for(int i = 0; i < slidersize; i++)
         {
-            gs.framebuffer.pxlbuf[sliderpos - offset + i][0 + PONG_OFFSET_X] = '|';
+            mvaddch(sliderpos - offset + i, 0 + PONG_OFFSET_X, '|');
         }
     }
 
@@ -244,7 +244,7 @@ error render(gamestate gs)
 
         for(int i = 0; i < slidersize; i++)
         {
-            gs.framebuffer.pxlbuf[sliderpos - offset + i][gs.framebuffer.width * 2 + PONG_OFFSET_Y] = '|';
+            mvaddch(sliderpos - offset + i, gs.framebuffer.width * 2 + PONG_OFFSET_Y, '|');
         }
     }
 
