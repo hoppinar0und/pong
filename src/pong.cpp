@@ -3,6 +3,7 @@
 #include <thread>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "cround/cround.hpp"
 
 #define PONG_OFFSET_X 1
@@ -48,8 +49,8 @@ typedef struct gamestate
 {
     bool alive;
     int condition;
-    float p1pos;
-    float p2pos;
+    int p1pos;
+    int p2pos;
     vector ballvec;
     point ballpos;
     input inbuf;
@@ -77,6 +78,15 @@ point create_point(float x, float y)
     point _return;
     _return.x = x;
     _return.y = y;
+
+    return _return;
+}
+
+vector create_vector(point dest, point orig)
+{
+    vector _return;
+    _return.destination;
+    _return.origin;
 
     return _return;
 }
@@ -128,7 +138,7 @@ gamestate init_game(size_t height, int condition)
         if(condition == PONG_DEBUG)
         {
             attron(COLOR_PAIR(1));
-            mvaddch(i, width + PONG_OFFSET_X, '|');
+            mvaddch(i, cround((PONG_COSYS_XMAX / 2.0f) / PONG_COSYS_XMAX * width * 2 + PONG_OFFSET_X), '|');
             attroff(COLOR_PAIR(1));
         }
 
@@ -148,11 +158,15 @@ gamestate init_game(size_t height, int condition)
 
     frame f = create_frame(height, width);
 
-    _return.p1pos = 2.5;
-    _return.p2pos = 7.5;
+    _return.p1pos = 0;
+    _return.p2pos = 6;
     _return.framecount = 0;
     _return.framebuffer = f;
-    _return.ballpos = create_point((PONG_COSYS_XMAX) / 2.0f, PONG_COSYS_YMAX / 2.0f);
+    _return.ballpos = create_point(PONG_COSYS_XMAX / 2.0f, PONG_COSYS_YMAX / 2.0f);
+
+    bool random = rand() % 2;
+
+    _return.ballvec = create_vector(create_point(rand() % cround(PONG_COSYS_XMAX), rand() % cround(PONG_COSYS_YMAX)), _return.ballpos);
 
     _return.condition = condition;
 
@@ -211,75 +225,86 @@ error render(gamestate gs)
 
     // Ball computation
     {
-        bally = cround((float)gs.ballpos.y / PONG_COSYS_YMAX) * gs.framebuffer.height; 
-        ballx = cround((float)gs.ballpos.x / PONG_COSYS_XMAX) * gs.framebuffer.width;
 
-        mvaddch(bally + PONG_OFFSET_Y, ballx * 2 + PONG_OFFSET_X, '@');
+        bally = cround((float)gs.ballpos.y / PONG_COSYS_YMAX * gs.framebuffer.height); 
+        ballx = cround((float)gs.ballpos.x / PONG_COSYS_XMAX * gs.framebuffer.width * 2 + PONG_OFFSET_X);
+
+        mvaddch(bally + PONG_OFFSET_Y, ballx, '@');
+    }
+    
+    // p1 slider
+    {
+        for(int i = 0; i < gs.framebuffer.height; i++)
+            mvaddch(i + PONG_OFFSET_Y, 0 + PONG_OFFSET_X, ' ');
+        for(int i = 0; i < 2; i++)
+            mvaddch(gs.p1pos + PONG_OFFSET_Y + i, 0 + PONG_OFFSET_X, '|');
     }
 
-    // p1 slider computation
+    // p2 slider
     {
-        int sliderpos = (gs.p1pos / PONG_COSYS_YMAX) * gs.framebuffer.height;
-        int slidersize = gs.framebuffer.height / 3;
-
-        int offset = cround((float)slidersize / 2.0f - 1.0f);
 
         for(int i = 0; i < gs.framebuffer.height; i++)
-        {
-
-        }
-
-        for(int i = 0; i < slidersize; i++)
-        {
-            mvaddch(sliderpos - offset + i, 0 + PONG_OFFSET_X, '|');
-        }
-    }
-
-    // p2 slider computation
-    {
-        int sliderpos = cround((float)gs.p2pos / PONG_COSYS_YMAX) * gs.framebuffer.height;
-        int slidersize = cround((float)gs.framebuffer.height / 3.0f);
-
-        int offset = cround((float)slidersize / 2.0f - 1.0f);
-
-        for(int i = 0; i < slidersize; i++)
-        {
-            mvaddch(sliderpos - offset + i, gs.framebuffer.width * 2 + PONG_OFFSET_Y, '|');
-        }
+            mvaddch(i + PONG_OFFSET_Y, gs.framebuffer.width * 2 + PONG_OFFSET_X, ' ');
+        for(int i = 0; i < 2; i++)
+            mvaddch(gs.p2pos + PONG_OFFSET_Y + i, gs.framebuffer.width * 2 + PONG_OFFSET_X, '|');
     }
 
     // debug computation
     if(gs.condition == PONG_DEBUG)
     {
 
+        int desty;
+        int destx;
+
+        // vector computation
+        {
+
+            desty = cround((float)gs.ballvec.destination.y / PONG_COSYS_YMAX * gs.framebuffer.height); 
+            destx = cround((float)gs.ballvec.destination.x / PONG_COSYS_XMAX * gs.framebuffer.width * 2 + PONG_OFFSET_X);
+
+            mvaddch(desty + PONG_OFFSET_Y, destx, 'O');
+        }
+
         mvprintw(gs.framebuffer.height + 2, 0, "@: ");
 
         mvprintw
         (
             gs.framebuffer.height + 2, 3,
-            "y: (%f / %f) * %f = %f",
-            gs.ballpos.y, PONG_COSYS_YMAX, (float)gs.framebuffer.height, (float)bally
+            "y: (%d / %f) * %d = %d",
+            gs.ballpos.y, PONG_COSYS_YMAX, gs.framebuffer.height, bally
         );
 
         mvprintw
         (
             gs.framebuffer.height + 3, 3,
-            "x: (%f / %f) * %f = %f",
-            gs.ballpos.x, PONG_COSYS_XMAX, (float)gs.framebuffer.width, (float)ballx
+            "x: (%d / %f) * %d = %d",
+            gs.ballpos.x, PONG_COSYS_XMAX, gs.framebuffer.width, ballx
+        );
+
+        mvprintw(gs.framebuffer.height + 4, 0, "O: ");
+
+        mvprintw
+        (
+            gs.framebuffer.height + 4, 3,
+            "y: (%d / %f) * %d = %d",
+            gs.ballvec.destination.y, PONG_COSYS_YMAX, gs.framebuffer.height, desty
+        );
+
+
+        mvprintw
+        (
+            gs.framebuffer.height + 5, 3,
+            "x: (%d / %f) * %d = %d",
+            gs.ballvec.destination.x, PONG_COSYS_XMAX, gs.framebuffer.width, destx
         );
 
         mvprintw
         (
-            gs.framebuffer.height + PONG_OFFSET_Y * 2 + 2, 0,
+            gs.framebuffer.height + 6, 0,
             "framecount: %d",
             gs.framecount
         );
     }
-
-    for(int y = 0; y < gs.framebuffer.width; y++)
-        for(int x = 0; y < gs.framebuffer.height; x++)
-            mvaddch(y, x, gs.framebuffer.pxlbuf[y][x]);
-
 
     refresh();
 
@@ -301,25 +326,53 @@ error run(gamestate* gsptr)
 
         case UP_P1:
         {
-            gsptr->p1pos -= 0.25;
+            if(gsptr->p1pos <= 0)
+            {
+                gsptr->p1pos = 0;
+            }
+            else
+            {
+                gsptr->p1pos -= 1;
+            }
         }
         break;
 
         case DOWN_P1:
         {
-            gsptr->p1pos += 0.25;
+            if(gsptr->p1pos >= 6)
+            {
+                gsptr->p1pos = 6;
+            }
+            else
+            {
+                gsptr->p1pos += 1;
+            }
         }
         break;
 
         case UP_P2:
         {
-            gsptr->p2pos -= 0.25;
+            if(gsptr->p2pos <= 0)
+            {
+                gsptr->p2pos = 0;
+            }
+            else
+            {
+                gsptr->p2pos -= 1;
+            }
         }
         break;
 
         case DOWN_P2:
         {
-            gsptr->p2pos += 0.25;
+            if(gsptr->p2pos >= 6)
+            {
+                gsptr->p2pos = 6;
+            }
+            else
+            {
+                gsptr->p2pos += 1;
+            }
         }
         break;
     }
@@ -353,7 +406,7 @@ int main(int argc, char** argv)
         render(gs);
         gs.framecount++;
         run(&gs);
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(std::chrono::milliseconds(40));
     }
 
     free_frame(gs.framebuffer);
